@@ -371,8 +371,7 @@ def toggle_language():
 # Top Right Controls (Fixed)
 # ============================================================
 # Adjusted layout to push buttons more to the right and fix spacing
-# We create a 3-column layout: Spacer (85%), Theme (7%), Lang (8%)
-col_header_1, col_header_2, col_header_3 = st.columns([0.85, 0.07, 0.08])
+col_header_1, col_header_2, col_header_3 = st.columns([0.92, 0.04, 0.04])
 
 with col_header_2:
     if st.button("🌙" if st.session_state.theme == "light" else "☀️", key="theme_btn", help="Toggle Theme"):
@@ -390,7 +389,7 @@ with st.sidebar:
     st.title("🤖 UNAI Chat")
     
     # New Chat & Search
-    if st.button(f"➕ {t('new_chat')}", use_container_width=True, type="primary"):
+    if st.button(f" {t('new_chat')}", use_container_width=True, type="primary"):
         create_new_chat()
         
     search_query = st.text_input("", placeholder=t("search_placeholder")).lower()
@@ -420,13 +419,13 @@ with st.sidebar:
         is_active = (sid == st.session_state.current_session_id)
         
         # Visual indicator for active chat
-        prefix = "🔵 " if is_active else "💬 "
+        display_title = title
         
         # We use a container for the row
         col_name, col_action = st.columns([0.8, 0.2])
         
         with col_name:
-            if st.button(f"{prefix}{title}", key=f"sel_{sid}", use_container_width=True, help=title):
+            if st.button(title, key=f"sel_{sid}", use_container_width=True, help=title):
                 st.session_state.current_session_id = sid
                 st.rerun()
                 
