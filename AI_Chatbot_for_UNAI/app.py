@@ -134,7 +134,36 @@ def inject_css():
         .stApp {{
             background-color: {colors['bg']} !important;
         }}
+        /* FIX 2: Top Bar (Always White) */
+        [data-testid="stHeader"] {{
+            background-color: #FFFFFF !important;
+        }}
+        
+        [data-testid="stHeader"] * {{
+            color: #000000 !important;
+        }}
 
+        /* Force all top bar elements to be visible */
+        [data-testid="stHeader"] *,
+        [data-testid="stToolbar"] *,
+        [data-testid="stHeader"] button *,
+        [data-testid="stToolbar"] button * {{
+            color: #000000 !important;
+        }}
+        
+        /* Specifically target Deploy button */
+        [data-testid="stHeader"] button[kind="header"],
+        [data-testid="stToolbar"] button {{
+            color: #000000 !important;
+            background-color: #FFFFFF !important;
+        }}
+        
+        /* Three dots menu */
+        [data-testid="stHeader"] [data-testid="baseButton-header"],
+        [data-testid="stToolbar"] [data-testid="baseButton-header"] {{
+            color: #000000 !important;
+        }}
+        
         /* Sidebar */
         [data-testid="stSidebar"] {{
             background-color: {colors['sidebar_bg']} !important;
@@ -186,15 +215,40 @@ def inject_css():
             background-color: {colors['sidebar_hover']} !important;
         }}
 
-        /* ===== FIX POPOVER ===== */
-
-        /* Popover trigger button */
-
-        [data-baseweb="popover"] [role="dialog"] {{
-            background-color: #1E1E1E !important;
+        /* FIX 1: Sidebar Toggle Arrow (Force White) */
+        button[kind="header"] {{
             color: #FFFFFF !important;
-            border: none !important;
-            box-shadow: none !important;
+        }}
+        
+        button[kind="header"] svg {{
+            fill: #FFFFFF !important;
+        }}
+        
+        [data-testid="collapsedControl"] {{
+            color: #FFFFFF !important;
+        }}
+        
+        [data-testid="collapsedControl"] svg {{
+            fill: #FFFFFF !important;
+        }}
+        
+        /* Sidebar collapse button (another selector) */
+        section[data-testid="stSidebar"] > button {{
+            color: #FFFFFF !important;
+        }}
+        
+        section[data-testid="stSidebar"] > button svg {{
+            fill: #FFFFFF !important;
+        }}
+
+        /* ===== FIX POPOVER (Match Theme) ===== */
+        
+        /* Popover background */
+        [data-baseweb="popover"] [role="dialog"] {{
+            background-color: {colors['popover_bg']} !important;
+            color: {colors['popover_text']} !important;
+            border: 1px solid {colors['border']} !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
             outline: none !important;
         }}
 
@@ -205,12 +259,17 @@ def inject_css():
         }}
 
         [data-testid="stPopoverBody"] {{
-            background-color: #1E1E1E !important;
-            color: #FFFFFF !important;
+            background-color: {colors['popover_bg']} !important;
+            color: {colors['popover_text']} !important;
             border-radius: 12px !important;
             padding: 1rem !important;
-            border: none !important;
-            box-shadow: none !important;
+            border: 1px solid {colors['border']} !important;
+        }}
+        
+        /* Popover text elements */
+        [data-testid="stPopoverBody"] *,
+        [data-baseweb="popover"] * {{
+            color: {colors['popover_text']} !important;
         }}
 
         [data-baseweb="layer"],
@@ -218,28 +277,57 @@ def inject_css():
             box-shadow: none !important;
             outline: none !important;
         }}
-
-        /* ไม่ใช้ inherit เพื่อไม่ให้ลาม */
-        [data-baseweb="popover"] * {{
-            background-color: unset !important;
-        }}
-
-        div[role="tooltip"]::before,
-        [data-baseweb="tooltip"]::before {{
-            border-top-color: {colors['popover_bg']} !important;
-            border-bottom-color: {colors['popover_bg']} !important;
-        }}
-
+        
+        /* Input inside popover */
         [data-baseweb="popover"] input[type="text"],
         [data-testid="stPopoverBody"] input[type="text"] {{
-            background-color: #2A2A2A !important;
-            color: #FFFFFF !important;
-            border: 1px solid #555555 !important;
+            background-color: {colors['input_bg']} !important;
+            color: {colors['input_text']} !important;
+            border: 1px solid {colors['border']} !important;
+            border-radius: 8px !important;
+            padding: 0.5rem !important;
         }}
 
         [data-baseweb="popover"] input[type="text"]::placeholder,
         [data-testid="stPopoverBody"] input[type="text"]::placeholder {{
-            color: #BBBBBB !important;
+            color: {colors['search_placeholder']} !important;
+        }}
+        
+        /* Buttons inside popover */
+        [data-testid="stPopoverBody"] button {{
+            background-color: {colors['btn_bg']} !important;
+            color: {colors['btn_text']} !important;
+            border: 1px solid {colors['border']} !important;
+        }}
+        
+        [data-testid="stPopoverBody"] button:hover {{
+            background-color: {colors['btn_hover']} !important;
+        }}
+        /* ===== FIX TOOLTIPS (Match Theme) ===== */
+        
+        /* Tooltip container */
+        [role="tooltip"],
+        [data-testid="stTooltipContent"],
+        div[data-baseweb="tooltip"] {{
+            background-color: {colors['popover_bg']} !important;
+            color: {colors['popover_text']} !important;
+            border: 1px solid {colors['border']} !important;
+        }}
+        
+        /* Tooltip arrow */
+        [role="tooltip"]::before,
+        [role="tooltip"]::after,
+        div[data-baseweb="tooltip"]::before,
+        div[data-baseweb="tooltip"]::after {{
+            border-top-color: {colors['popover_bg']} !important;
+            border-bottom-color: {colors['popover_bg']} !important;
+        }}
+        
+        /* Tooltip text */
+        [role="tooltip"] *,
+        [data-testid="stTooltipContent"] *,
+        div[data-baseweb="tooltip"] * {{
+            color: {colors['popover_text']} !important;
         }}
 
     </style>
