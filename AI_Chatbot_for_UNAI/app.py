@@ -165,6 +165,7 @@ TRANSLATIONS = {
     "thinking": {"th": "กำลังคิด...", "en": "Thinking..."},
     "save": {"th": "บันทึก", "en": "Save"},
     "cancel": {"th": "ยกเลิก", "en": "Cancel"},
+    "logout": {"th": "ออกจากระบบ", "en": "Logout"},
 }
 
 def t(key):
@@ -572,7 +573,7 @@ with st.sidebar:
     if "user" in st.session_state and st.session_state.user:
         st.markdown("---")
         st.caption(f"👤 {st.session_state.user.email}")
-        if st.button("🚪 ออกจากระบบ", use_container_width=True):
+        if st.button(f"🚪 {t('logout')}", use_container_width=True):
             logout()
         st.markdown("---")
     
