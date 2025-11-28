@@ -1,5 +1,5 @@
 """
-AI Chatbot for UNAI - Premium Redesign
+AI Chatbot for UNAI
 """
 
 import streamlit as st
@@ -278,11 +278,11 @@ def inject_css():
             outline: none !important;
         }}
         
-        /* Input inside popover */
+                /* Input inside popover */
         [data-baseweb="popover"] input[type="text"],
         [data-testid="stPopoverBody"] input[type="text"] {{
-            background-color: {colors['input_bg']} !important;
-            color: {colors['input_text']} !important;
+            background-color: {colors['popover_bg']} !important;
+            color: {colors['popover_text']} !important;
             border: 1px solid {colors['border']} !important;
             border-radius: 8px !important;
             padding: 0.5rem !important;
@@ -291,6 +291,15 @@ def inject_css():
         [data-baseweb="popover"] input[type="text"]::placeholder,
         [data-testid="stPopoverBody"] input[type="text"]::placeholder {{
             color: {colors['search_placeholder']} !important;
+        }}
+        
+        /* Divider inside popover */
+        [data-testid="stPopoverBody"] hr,
+        [data-baseweb="popover"] hr,
+        [data-testid="stPopoverBody"] [data-testid="stHorizontalBlock"],
+        [data-baseweb="popover"] [data-testid="stHorizontalBlock"] {{
+            border-color: {colors['border']} !important;
+            background-color: {colors['border']} !important;
         }}
         
         /* Buttons inside popover */
@@ -328,6 +337,42 @@ def inject_css():
         [data-testid="stTooltipContent"] *,
         div[data-baseweb="tooltip"] * {{
             color: {colors['popover_text']} !important;
+        }}
+
+         /* ===== FIX CHAT MESSAGES (Remove Duplicate/Faded Text) ===== */
+        
+        /* Hide avatar duplication */
+        [data-testid="stChatMessage"] > div:first-child {{
+            opacity: 1 !important;
+        }}
+        
+        /* Ensure only one text shows */
+        [data-testid="stChatMessageContent"] {{
+            opacity: 1 !important;
+        }}
+        
+        /* Remove any pseudo-elements that might cause duplication */
+        [data-testid="stChatMessage"]::before,
+        [data-testid="stChatMessage"]::after {{
+            display: none !important;
+        }}
+        
+        /* User message styling */
+        [data-testid="stChatMessage"][data-testid*="user"] {{
+            background-color: {colors['chat_user_bg']} !important;
+        }}
+        
+        [data-testid="stChatMessage"][data-testid*="user"] * {{
+            color: {colors['chat_user_text']} !important;
+        }}
+        
+        /* AI message styling */
+        [data-testid="stChatMessage"][data-testid*="assistant"] {{
+            background-color: {colors['chat_ai_bg']} !important;
+        }}
+        
+        [data-testid="stChatMessage"][data-testid*="assistant"] * {{
+            color: {colors['chat_ai_text']} !important;
         }}
 
     </style>
