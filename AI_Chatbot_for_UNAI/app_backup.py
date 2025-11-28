@@ -10,102 +10,8 @@ from dotenv import load_dotenv
 import hashlib
 from datetime import datetime
 import time
-from supabase import create_client, Client
 
 load_dotenv()
-
-# ============================================================
-# Supabase Client
-# ============================================================
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-
-@st.cache_resource
-def init_supabase() -> Client:
-    """Initialize Supabase client"""
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        st.error("❌ Missing Supabase credentials in .env file")
-        st.stop()
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
-
-supabase = init_supabase()
-
-# ============================================================
-# Authentication Functions
-# ============================================================
-
-def check_authentication():
-    """Check if user is logged in"""
-    if "user" not in st.session_state:
-        st.session_state.user = None
-    
-    if st.session_state.user is None:
-        show_login_page()
-        st.stop()
-
-def show_login_page():
-    """Display login/signup page"""
-    st.title("🔐 UNAI Chatbot")
-    st.markdown("### ล็อกอินเพื่อใช้งาน")
-    
-    tab1, tab2 = st.tabs(["เข้าสู่ระบบ", "สมัครสมาชิก"])
-    
-    with tab1:
-        st.subheader("เข้าสู่ระบบ")
-        email = st.text_input("อีเมล", key="login_email", placeholder="your@email.com")
-        password = st.text_input("รหัสผ่าน", type="password", key="login_password")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("เข้าสู่ระบบ", use_container_width=True, type="primary"):
-                if not email or not password:
-                    st.error("❌ กรุณากรอกอีเมลและรหัสผ่าน")
-                else:
-                    try:
-                        response = supabase.auth.sign_in_with_password({
-                            "email": email,
-                            "password": password
-                        })
-                        st.session_state.user = response.user
-                        st.success("✅ เข้าสู่ระบบสำเร็จ!")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"❌ เข้าสู่ระบบไม่สำเร็จ: {str(e)}")
-    
-    with tab2:
-        st.subheader("สมัครสมาชิก")
-        email = st.text_input("อีเมล", key="signup_email", placeholder="your@email.com")
-        password = st.text_input("รหัสผ่าน", type="password", key="signup_password")
-        confirm_password = st.text_input("ยืนยันรหัสผ่าน", type="password", key="confirm_password")
-        
-        if st.button("สมัครสมาชิก", use_container_width=True, type="primary"):
-            if not email or not password:
-                st.error("❌ กรุณากรอกข้อมูลให้ครบถ้วน")
-            elif password != confirm_password:
-                st.error("❌ รหัสผ่านไม่ตรงกัน")
-            elif len(password) < 6:
-                st.error("❌ รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร")
-            else:
-                try:
-                    response = supabase.auth.sign_up({
-                        "email": email,
-                        "password": password
-                    })
-                    st.success("✅ สมัครสมาชิกสำเร็จ! กรุณาตรวจสอบอีเมลเพื่อยืนยันบัญชี")
-                    st.info("💡 กลับไปที่แท็บ 'เข้าสู่ระบบ' เพื่อเข้าใช้งาน")
-                except Exception as e:
-                    st.error(f"❌ สมัครสมาชิกไม่สำเร็จ: {str(e)}")
-
-def logout():
-    """Logout user"""
-    try:
-        supabase.auth.sign_out()
-        st.session_state.user = None
-        st.session_state.chat_sessions = {}
-        st.success("✅ ออกจากระบบสำเร็จ")
-        st.rerun()
-    except Exception as e:
-        st.error(f"❌ ออกจากระบบไม่สำเร็จ: {str(e)}")
 
 # ============================================================
 # Page Config
@@ -116,11 +22,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-# ============================================================
-# Check Authentication
-# ============================================================
-check_authentication()
 
 # ============================================================
 # State Management
@@ -140,8 +41,7 @@ if "current_session_id" not in st.session_state:
     st.session_state.chat_sessions[new_id] = {
         "messages": [],
         "created_at": datetime.now().isoformat(),
-        "title": "New Chat",
-        "thread_id": None
+        "title": "New Chat"
     }
     st.session_state.current_session_id = new_id
 
@@ -412,11 +312,6 @@ def inject_css():
         [data-testid="stPopoverBody"] button:hover {{
             background-color: {colors['btn_hover']} !important;
         }}
-
-                [data-testid="stPopoverBody"] button:hover {{
-            background-color: {colors['btn_hover']} !important;
-        }}
-        
         /* ===== FIX TOOLTIPS (Match Theme) ===== */
         
         /* Tooltip container */
@@ -426,7 +321,6 @@ def inject_css():
             background-color: {colors['popover_bg']} !important;
             color: {colors['popover_text']} !important;
             border: 1px solid {colors['border']} !important;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
         }}
         
         /* Tooltip arrow */
@@ -438,48 +332,28 @@ def inject_css():
             border-bottom-color: {colors['popover_bg']} !important;
         }}
         
-        /* Tooltip text - Force correct colors */
+        /* Tooltip text */
         [role="tooltip"] *,
         [data-testid="stTooltipContent"] *,
-        div[data-baseweb="tooltip"] *,
-        div[data-baseweb="tooltip"] div,
-        div[data-baseweb="tooltip"] span,
-        div[data-baseweb="tooltip"] p {{
+        div[data-baseweb="tooltip"] * {{
             color: {colors['popover_text']} !important;
-            background-color: transparent !important;
         }}
+
+         /* ===== FIX CHAT MESSAGES (Remove Duplicate/Faded Text) ===== */
         
-        /* Force parent background */
-        div[data-baseweb="tooltip"] > div {{
-            background-color: {colors['popover_bg']} !important;
-        }}
-        
-        /* ===== FIX CHAT MESSAGES (Remove Duplicate/Faded Text) ===== */
-        
-        /* FORCE HIDE ALL DUPLICATE/FADED ELEMENTS */
-        [data-testid="stChatMessage"] * {{
+        /* Hide avatar duplication */
+        [data-testid="stChatMessage"] > div:first-child {{
             opacity: 1 !important;
         }}
         
-        /* Hide any faded text with rgba colors */
-        [data-testid="stChatMessage"] *[style*="rgba"],
-        [data-testid="stChatMessage"] *[style*="opacity: 0"],
-        [data-testid="stChatMessage"] *[style*="opacity:0"],
-        [data-testid="stChatMessage"] *[class*="faded"],
-        [data-testid="stChatMessage"] *[class*="ghost"] {{
-            display: none !important;
+        /* Ensure only one text shows */
+        [data-testid="stChatMessageContent"] {{
+            opacity: 1 !important;
         }}
         
-        /* Force single content display */
-        [data-testid="stChatMessageContent"] > div:not(:first-child) {{
-            display: none !important;
-        }}
-        
-        /* Remove any pseudo-elements */
+        /* Remove any pseudo-elements that might cause duplication */
         [data-testid="stChatMessage"]::before,
-        [data-testid="stChatMessage"]::after,
-        [data-testid="stChatMessage"] *::before,
-        [data-testid="stChatMessage"] *::after {{
+        [data-testid="stChatMessage"]::after {{
             display: none !important;
         }}
         
@@ -511,19 +385,10 @@ inject_css()
 # ============================================================
 def create_new_chat():
     new_id = hashlib.md5(str(time.time()).encode()).hexdigest()
-    
-    # สร้าง thread ใหม่สำหรับแชทนี้
-    try:
-        thread = assistant.create_thread()
-        thread_id = thread.id
-    except:
-        thread_id = None
-    
     st.session_state.chat_sessions[new_id] = {
         "messages": [],
         "created_at": datetime.now().isoformat(),
-        "title": t("new_chat"),
-        "thread_id": thread_id  # ← เก็บ thread_id
+        "title": t("new_chat")
     }
     st.session_state.current_session_id = new_id
     st.rerun()
@@ -567,14 +432,6 @@ with col_header_3:
 with st.sidebar:
     # Header
     st.title("🤖 UNAI Chat")
-    
-    # Show logged in user & logout button
-    if "user" in st.session_state and st.session_state.user:
-        st.markdown("---")
-        st.caption(f"👤 {st.session_state.user.email}")
-        if st.button("🚪 ออกจากระบบ", use_container_width=True):
-            logout()
-        st.markdown("---")
     
     # New Chat & Search
     if st.button(f" {t('new_chat')}", use_container_width=True, type="primary"):
@@ -685,48 +542,27 @@ if not current_session["messages"]:
 # Display Messages
 for msg in current_session["messages"]:
     with st.chat_message(msg["role"]):
-        st.markdown(msg["content"], unsafe_allow_html=False)
+        st.markdown(msg["content"])
 
 # Chat Input
 if prompt := st.chat_input(t("input_placeholder")):
     # Add User Message
     current_session["messages"].append({"role": "user", "content": prompt})
     with st.chat_message("user"):
-        st.markdown(prompt, unsafe_allow_html=False)
-    
+        st.markdown(prompt)
+        
     # Generate Response
     with st.chat_message("assistant"):
-        # สร้าง placeholder สำหรับแสดงผล
-        message_placeholder = st.empty()
-        
-        # แสดง spinner
         with st.spinner(t("thinking")):
             try:
                 if assistant:
-                    # ใช้ thread_id แยกตามแชท
-                    thread_id = current_session.get("thread_id")
-                    
-                    # สร้าง message
-                    msg = Message(content=prompt)
-                    
-                    # ส่งไปยัง Pinecone พร้อม thread_id
-                    if thread_id:
-                        response = assistant.chat(messages=[msg], thread_id=thread_id)
-                    else:
-                        # ครั้งแรกของแชทนี้ - สร้าง thread ใหม่
-                        response = assistant.chat(messages=[msg])
-                        # เก็บ thread_id ไว้ใช้ครั้งต่อไป
-                        if hasattr(response, 'thread_id'):
-                            current_session["thread_id"] = response.thread_id
-                    
+                    response = assistant.chat(messages=[Message(content=prompt)])
                     reply = response.message.content
                 else:
                     reply = "Error: Assistant not initialized."
             except Exception as e:
                 reply = f"Error: {str(e)}"
-        
-        # แสดงคำตอบใน placeholder หลังคิดเสร็จ
-        message_placeholder.write(reply)
+        st.markdown(reply)
         
     # Add AI Message
     current_session["messages"].append({"role": "assistant", "content": reply})
