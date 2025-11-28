@@ -3,6 +3,14 @@ AI Chatbot for UNAI
 """
 
 import streamlit as st
+
+st.set_page_config(
+    page_title="UNAI Chatbot",
+    page_icon="🤖",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
 import os
 from pinecone import Pinecone
 from pinecone_plugins.assistant.models.chat import Message
@@ -106,16 +114,6 @@ def logout():
         st.rerun()
     except Exception as e:
         st.error(f"❌ ออกจากระบบไม่สำเร็จ: {str(e)}")
-
-# ============================================================
-# Page Config
-# ============================================================
-st.set_page_config(
-    page_title="UNAI Chatbot",
-    page_icon="🤖",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 # ============================================================
 # Check Authentication
