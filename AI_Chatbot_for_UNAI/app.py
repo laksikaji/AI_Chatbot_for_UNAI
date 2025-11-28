@@ -131,23 +131,6 @@ if "theme" not in st.session_state:
 if "language" not in st.session_state:
     st.session_state.language = "th"
 
-if "chat_sessions" not in st.session_state:
-    st.session_state.chat_sessions = {}
-
-if "current_session_id" not in st.session_state:
-    # Create initial session
-    new_id = hashlib.md5(str(time.time()).encode()).hexdigest()
-    st.session_state.chat_sessions[new_id] = {
-        "messages": [],
-        "created_at": datetime.now().isoformat(),
-        "title": "New Chat",
-        "thread_id": None
-    }
-    st.session_state.current_session_id = new_id
-
-if "renaming_session_id" not in st.session_state:
-    st.session_state.renaming_session_id = None
-
 # ============================================================
 # Translations
 # ============================================================
@@ -170,6 +153,135 @@ TRANSLATIONS = {
 
 def t(key):
     return TRANSLATIONS.get(key, {}).get(st.session_state.language, key)
+
+# ============================================================
+# Database Functions
+# ============================================================
+
+def save_session_to_db(session_id, session_data):
+    """บันทึกแชทลง Supabase"""
+    try:
+        user_id = st.session_state.user.id
+        
+        # 1. บันทึก/อัพเดต session
+        session_row = {
+            "id": session_id,
+            "user_id": user_id,
+            "title": session_data.get("title", "New Chat"),
+            "thread_id": session_data.get("thread_id"),
+            "created_at": session_data.get("created_at")
+        }
+        
+        # Upsert (Insert or Update)
+        supabase.table("chat_sessions").upsert(session_row).execute()
+        
+        # 2. ลบข้อความเก่าก่อน (เพื่อความง่าย)
+        supabase.table("chat_messages").delete().eq("session_id", session_id).execute()
+        
+        # 3. Insert ข้อความใหม่
+        if session_data.get("messages"):
+            messages_to_insert = [
+                {
+                    "session_id": session_id,
+                    "role": msg["role"],
+                    "content": msg["content"]
+                }
+                for msg in session_data["messages"]
+            ]
+            supabase.table("chat_messages").insert(messages_to_insert).execute()
+        
+        return True
+    except Exception as e:
+        st.error(f"❌ Error saving to database: {str(e)}")
+        return False
+
+def load_sessions_from_db():
+    """โหลดแชททั้งหมดจาก Supabase"""
+    try:
+        user_id = st.session_state.user.id
+        
+        # 1. โหลด sessions
+        response = supabase.table("chat_sessions") \
+            .select("*") \
+            .eq("user_id", user_id) \
+            .order("created_at", desc=True) \
+            .execute()
+        
+        sessions = {}
+        for session in response.data:
+            session_id = session["id"]
+            
+            # 2. โหลดข้อความของแต่ละ session
+            messages_response = supabase.table("chat_messages") \
+                .select("*") \
+                .eq("session_id", session_id) \
+                .order("created_at") \
+                .execute()
+            
+            messages = [
+                {
+                    "role": msg["role"],
+                    "content": msg["content"]
+                }
+                for msg in messages_response.data
+            ]
+            
+            sessions[session_id] = {
+                "title": session["title"],
+                "thread_id": session["thread_id"],
+                "created_at": session["created_at"],
+                "messages": messages
+            }
+        
+        return sessions
+    except Exception as e:
+        st.error(f"❌ Error loading from database: {str(e)}")
+        return {}
+
+def delete_session_from_db(session_id):
+    """ลบแชทจาก Supabase"""
+    try:
+        supabase.table("chat_sessions").delete().eq("id", session_id).execute()
+        return True
+    except Exception as e:
+        st.error(f"❌ Error deleting from database: {str(e)}")
+        return False
+
+# ============================================================
+# Load Sessions from Database (After Authentication)
+# ============================================================
+if "chat_sessions" not in st.session_state:
+    # โหลดจาก database
+    loaded_sessions = load_sessions_from_db()
+    
+    if loaded_sessions:
+        st.session_state.chat_sessions = loaded_sessions
+        # ตั้ง current_session_id เป็น session แรก
+        st.session_state.current_session_id = list(loaded_sessions.keys())[0]
+    else:
+        # ถ้าไม่มีข้อมูล สร้างแชทแรก
+        new_id = hashlib.md5(str(time.time()).encode()).hexdigest()
+        new_session = {
+            "messages": [],
+            "created_at": datetime.now().isoformat(),
+            "title": t("new_chat"),
+            "thread_id": None
+        }
+        st.session_state.chat_sessions = {new_id: new_session}
+        st.session_state.current_session_id = new_id
+        
+        # บันทึกลง database
+        save_session_to_db(new_id, new_session)
+
+if "current_session_id" not in st.session_state:
+    # Fallback ถ้ายังไม่มี
+    if st.session_state.chat_sessions:
+        st.session_state.current_session_id = list(st.session_state.chat_sessions.keys())[0]
+
+if "renaming_session_id" not in st.session_state:
+    st.session_state.renaming_session_id = None
+
+
 
 # ============================================================
 # CSS & Theme
@@ -520,18 +632,29 @@ def create_new_chat():
     except:
         thread_id = None
     
-    st.session_state.chat_sessions[new_id] = {
+    new_session = {
         "messages": [],
         "created_at": datetime.now().isoformat(),
         "title": t("new_chat"),
-        "thread_id": thread_id  # ← เก็บ thread_id
+        "thread_id": thread_id
     }
+    
+    st.session_state.chat_sessions[new_id] = new_session
     st.session_state.current_session_id = new_id
+    
+    # บันทึกลง database
+    save_session_to_db(new_id, new_session)
+    
     st.rerun()
 
 def delete_chat(session_id):
     if session_id in st.session_state.chat_sessions:
+        # ลบจาก database
+        delete_session_from_db(session_id)
+        
+        # ลบจาก session state
         del st.session_state.chat_sessions[session_id]
+        
         # If deleted current, switch to another or create new
         if st.session_state.current_session_id == session_id:
             if st.session_state.chat_sessions:
@@ -600,15 +723,7 @@ with st.sidebar:
         if search_query and search_query not in title.lower():
             continue
             
-        # Layout for each chat item
-        # We use an expander or columns. 
-        # To achieve "Click to select" AND "Rename/Delete", we can use an expander for the active one,
-        # or just simple buttons.
-        
         is_active = (sid == st.session_state.current_session_id)
-        
-        # Visual indicator for active chat
-        display_title = title
         
         # We use a container for the row
         col_name, col_action = st.columns([0.8, 0.2])
@@ -619,10 +734,6 @@ with st.sidebar:
                 st.rerun()
                 
         with col_action:
-            # Only show actions if active or if we want to clutter the UI. 
-            # Let's show a "..." popover or expander if possible. 
-            # Streamlit 1.30+ has st.popover. Assuming we have a recent version.
-            # If not, we fallback to an expander.
             try:
                 with st.popover("⋮", help="Options"):
                     st.write(t("settings"))
@@ -631,6 +742,7 @@ with st.sidebar:
                     new_name = st.text_input(t("rename"), value=title, key=f"rename_{sid}")
                     if st.button(t("save"), key=f"save_rename_{sid}"):
                         st.session_state.chat_sessions[sid]['title'] = new_name
+                        save_session_to_db(sid, st.session_state.chat_sessions[sid])
                         st.rerun()
                         
                     st.divider()
@@ -645,6 +757,7 @@ with st.sidebar:
                         new_name = st.text_input(t("rename"), value=title, key=f"rename_{sid}")
                         if st.button(t("save"), key=f"save_rename_{sid}"):
                             st.session_state.chat_sessions[sid]['title'] = new_name
+                            save_session_to_db(sid, st.session_state.chat_sessions[sid])
                             st.rerun()
                         if st.button(t("delete"), key=f"del_{sid}"):
                             delete_chat(sid)
@@ -731,10 +844,14 @@ if prompt := st.chat_input(t("input_placeholder")):
         
     # Add AI Message
     current_session["messages"].append({"role": "assistant", "content": reply})
-    
+
     # Auto-rename if it's the first message and title is default
     if len(current_session["messages"]) == 2 and current_session["title"] == t("new_chat"):
         # Simple heuristic: use first few words of prompt
         new_title = " ".join(prompt.split()[:5])
         current_session["title"] = new_title
-        st.rerun()
+
+    # บันทึกลง database
+    save_session_to_db(st.session_state.current_session_id, current_session)
+
+    st.rerun()
